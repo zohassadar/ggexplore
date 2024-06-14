@@ -1,12 +1,24 @@
+import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useState } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs/';
 
 function App() {
     const [disasm, setDisasm] = useState('');
     const [loaded, setLoaded] = useState(false);
     const [lookupTable, setLookupTable] = useState([]);
-
+    const [windowObj, setWindowObj] = useState('');
+    const [ggCode, setGgCode] = useState('ZZZZZZ');
+    function getWindow(lineNo) {
+        const newWindow = [];
+        const disasmLines = disasm.split(/\n/);
+        const start = Math.max(lineNo - 20, 0);
+        const end = Math.min(lineNo + 20, disasmLines.length);
+        console.log(`Start line: ${start} End line: ${end}`);
+        newWindow.push(...disasmLines.slice(start, lineNo));
+        newWindow.push(...disasmLines.slice(lineNo, end));
+        console.log(newWindow.length);
+        return newWindow.join('\n');
+    }
     function getLookupTable() {
         fetch('disasm.s').then((response) =>
             response.text().then((text) => {
@@ -40,12 +52,31 @@ function App() {
         setLoaded(true);
     }
 
+    function handleGGCode(event) {
+        setGgCode(event.target.value);
+    }
+
     return (
         <div className="App">
             <header className="App-header">
-                <img src={logo} className="App-logo" alt="logo" />
                 {lookupTable.length}
-                <pre>{disasm}</pre>
+                <p>
+                    <label htmlFor="gg">GG:</label>
+                    <input id="gg" onChange={(e) => handleGGCode(e)}></input>
+                </p>
+                <p>
+                    GG Code: <pre> {ggCode}</pre>
+                </p>
+                <p>
+                    <button onClick={() => setWindowObj(getWindow(300))}>
+                        click
+                    </button>
+                </p>
+                <SyntaxHighlighter
+                    children={windowObj}
+                    language="x86asm"
+                    style={dracula}
+                />
             </header>
         </div>
     );
