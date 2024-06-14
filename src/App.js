@@ -1,7 +1,8 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useState } from 'react';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs/';
-
+import opcodes from "./opcodes.js";
+import addressModes from "./modes.js";
 const { encodeNES, decodeNES } = require('./gg.js');
 
 function App() {
