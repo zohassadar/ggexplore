@@ -81,26 +81,28 @@ function App() {
                         click
                     </button>
                 </p>
-                <SyntaxHighlighter
-                    children={windowObj}
-                    language="x86asm"
-                    showLineNumbers={true}
-                    startingLineNumber={startNo}
-                    style={dracula}
-                    wrapLines={true}
-                    lineProps={(lineNumber) => {
-                        const style = {
-                            display: 'block',
-                            width: 'fit-content',
-                        };
-                        console.log(`lineNumber= ${lineNumber}`);
-                        console.log('HELLO');
-                        if (lineNumber === lineNo + 1) {
-                            style.backgroundColor = '#284a56'; //#282a36
-                        }
-                        return { style };
-                    }}
-                />
+                {windowObj && (
+                    <SyntaxHighlighter
+                        children={windowObj}
+                        language="x86asm"
+                        showLineNumbers={true}
+                        startingLineNumber={startNo}
+                        style={dracula}
+                        wrapLines={true}
+                        lineProps={(lineNumber) => {
+                            const style = {
+                                display: 'block',
+                                width: 'fit-content',
+                            };
+                            console.log(`lineNumber= ${lineNumber}`);
+                            console.log('HELLO');
+                            if (lineNumber === lineNo + 1) {
+                                style.backgroundColor = '#284a56'; //#282a36
+                            }
+                            return { style };
+                        }}
+                    />
+                )}
             </header>
         </div>
     );
