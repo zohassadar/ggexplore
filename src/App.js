@@ -2,12 +2,16 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useState } from 'react';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs/';
 
+const { encodeNES, decodeNES } = require('./gg.js');
+
 function App() {
     const [disasm, setDisasm] = useState('');
     const [loaded, setLoaded] = useState(false);
     const [lookupTable, setLookupTable] = useState([]);
     const [windowObj, setWindowObj] = useState('');
-    const [ggCode, setGgCode] = useState('ZZZZZZ');
+    const [ggCode, setGgCode] = useState('...');
+    const [lineNo, setLineNo] = useState(0);
+    const [startNo, setStartNo] = useState(1);
     function getWindow(lineNo) {
         const newWindow = [];
         const disasmLines = disasm.split(/\n/);
@@ -17,6 +21,7 @@ function App() {
         newWindow.push(...disasmLines.slice(start, lineNo));
         newWindow.push(...disasmLines.slice(lineNo, end));
         console.log(newWindow.length);
+        setStartNo(start + 1);
         return newWindow.join('\n');
     }
     function getLookupTable() {
@@ -53,29 +58,48 @@ function App() {
     }
 
     function handleGGCode(event) {
-        setGgCode(event.target.value);
+        const code = event.target.value;
+        const decoded = decodeNES(code);
+        setGgCode(
+            `Address: 0x${(decoded.address + 0x8000).toString(
+                16,
+            )} Value: 0x${decoded.value.toString(16)}`,
+        );
+        setLineNo(lookupTable[decoded.address][0]);
     }
 
     return (
         <div className="App">
             <header className="App-header">
-                {lookupTable.length}
                 <p>
-                    <label htmlFor="gg">GG:</label>
+                    <label htmlFor="gg">GG Code:</label>
                     <input id="gg" onChange={(e) => handleGGCode(e)}></input>
                 </p>
+                <pre> {ggCode}</pre>
                 <p>
-                    GG Code: <pre> {ggCode}</pre>
-                </p>
-                <p>
-                    <button onClick={() => setWindowObj(getWindow(300))}>
+                    <button onClick={() => setWindowObj(getWindow(lineNo))}>
                         click
                     </button>
                 </p>
                 <SyntaxHighlighter
                     children={windowObj}
                     language="x86asm"
+                    showLineNumbers={true}
+                    startingLineNumber={startNo}
                     style={dracula}
+                    wrapLines={true}
+                    lineProps={(lineNumber) => {
+                        const style = {
+                            display: 'block',
+                            width: 'fit-content',
+                        };
+                        console.log(`lineNumber= ${lineNumber}`);
+                        console.log('HELLO');
+                        if (lineNumber === lineNo + 1) {
+                            style.backgroundColor = '#284a56'; //#282a36
+                        }
+                        return { style };
+                    }}
                 />
             </header>
         </div>
