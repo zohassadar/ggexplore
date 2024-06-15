@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs/';
 import opcodes from './opcodes.js';
 import addressModes from './modes.js';
-const { encodeNES, decodeNES } = require('./gg.js');
+const { decodeNES } = require('./gg.js');
 
 function App() {
     const [disasm, setDisasm] = useState('');
@@ -45,7 +45,7 @@ function App() {
                         /; [89A-F][A-F0-9]{3} (.*)/,
                     );
                     if (search !== null) {
-                        const isOpCode = false;
+                        let isOpCode = false;
                         if (data[lineNo].match(/^\s+[a-z]{3}/)) {
                             isOpCode = true;
                         }
