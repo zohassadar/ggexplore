@@ -164,7 +164,7 @@ function App() {
             setDisplay(newDisplay);
             return;
         }
-        if (display.address != '') {
+        if (display.address !== '') {
             const newCode = getGGCode(display.address, newModifiedDisplay);
             newDisplay.code = newCode;
         }
