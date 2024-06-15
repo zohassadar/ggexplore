@@ -12,6 +12,14 @@ const nullOpcodes = {
     modOpcode: null,
     modAddressing: null,
 };
+function getNewDisplay() {
+    return {
+        code: '',
+        address: '',
+        original: '',
+        modified: '',
+    };
+}
 
 function OpCodeDisplay({ opcode, addressMode, hide }) {
     if (hide) return 'N/A';
@@ -63,7 +71,7 @@ function App() {
     });
 
     function updateOpcodes(address, ogByte, modByte) {
-        if (lookupTable[address][3]) {
+        if (!isNaN(address) && lookupTable[address][3]) {
             setOpcodes({
                 ogOpcode: opcodeLookup[ogByte],
                 ogAddressing: addressModes[ogByte],
@@ -122,21 +130,21 @@ function App() {
 
     function handleAddress(event) {
         const newAddressDisplay = event.target.value;
-        var newDisplay = Object.assign({}, display);
-        newDisplay.address = newAddressDisplay;
-        var newDisplay = {
-            code: display.code,
-            address: newAddressDisplay,
-            modified: display.modified,
-        };
+        const newDisplay = getNewDisplay();
         const newAddress = parseInt(newAddressDisplay, 16) - 0x8000;
+        newDisplay.address = newAddressDisplay;
+        newDisplay.modified = display.modified;
+        updateOpcodes(undefined);
         if (isNaN(newAddress) || newAddress < 0 || newAddress >= 0x8000) {
             setDisplay(newDisplay);
             setLineNo(null);
             return;
         }
+        const ogByte = lookupTable[newAddress][2];
+        newDisplay.original = ogByte.toString(16);
         setLineNo(lookupTable[newAddress][0]);
         if (display.modified !== '') {
+            updateOpcodes(newAddress, ogByte, parseInt(display.modified, 16));
             const newCode = getGGCode(newAddressDisplay, display.modified);
             newDisplay.code = newCode;
         }
@@ -146,9 +154,12 @@ function App() {
         const newModifiedDisplay = event.target.value;
         const ogByte = parseInt(display.original, 16);
         const address = parseInt(display.address, 16) - 0x8000;
-        var newDisplay = Object.assign({}, display);
+        const newDisplay = getNewDisplay();
+        newDisplay.address = display.address;
+        newDisplay.original = display.original;
         newDisplay.modified = newModifiedDisplay;
         const newByte = parseInt(newModifiedDisplay, 16);
+        updateOpcodes(undefined);
         if (isNaN(newByte) || newByte < 0 || newByte >= 0x100) {
             setDisplay(newDisplay);
             return;
@@ -163,7 +174,7 @@ function App() {
 
     function handleGGCode(event) {
         const code = event.target.value;
-        var newDisplay = Object.assign({}, display);
+        const newDisplay = getNewDisplay();
         newDisplay.code = code;
         const valid = isValidNESCode(code);
         if (!valid) {
