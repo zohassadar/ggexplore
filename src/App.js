@@ -5,6 +5,33 @@ import opcodes from './opcodes.js';
 import addressModes from './modes.js';
 const { decodeNES } = require('./gg.js');
 
+function OpCodeDisplay({ opcode, addressMode, hide }) {
+    if (hide) return '';
+    return addressMode ? (
+        <>
+            <a
+                href={
+                    'http://www.6502.org/tutorials/6502opcodes.html#' + opcode
+                }
+            >
+                {opcode}
+            </a>{' '}
+            {addressMode}
+        </>
+    ) : (
+        <>
+            <a
+                href={
+                    'https://www.masswerk.at/6502/6502_instruction_set.html#' +
+                    opcode
+                }
+            >
+                {opcode}
+            </a>{' '}
+            {' illegal!'}
+        </>
+    );
+}
 function App() {
     const [disasm, setDisasm] = useState('');
     const [loaded, setLoaded] = useState(false);
@@ -20,17 +47,15 @@ function App() {
     const [modOpCode, setModOpcode] = useState(null);
     const [modAddressing, setModAddressing] = useState(null);
 
-    function getWindow(lineNo) {
+    function setWindow(lineNo) {
         const newWindow = [];
         const disasmLines = disasm.split(/\n/);
         const start = Math.max(lineNo - 20, 0);
         const end = Math.min(lineNo + 20, disasmLines.length);
-        console.log(`Start line: ${start} End line: ${end}`);
         newWindow.push(...disasmLines.slice(start, lineNo));
         newWindow.push(...disasmLines.slice(lineNo, end));
-        console.log(newWindow.length);
         setStartNo(start + 1);
-        return newWindow.join('\n');
+        setWindowObj(newWindow.join('\n'));
     }
     function getLookupTable() {
         fetch('disasm.s').then((response) =>
@@ -100,72 +125,42 @@ function App() {
                         id="gg"
                         onChange={(e) => handleGGCode(e)}
                         onKeyDown={(e) =>
-                            e.key === 'Enter' && setWindowObj(getWindow(lineNo))
+                            e.key === 'Enter' && setWindow(lineNo)
                         }
                     ></input>
                 </p>
                 <>
                     <p>
                         Address:{' '}
-                        {address !== null ? '$' + (address + 0x8000).toString(16) : ''}
+                        {address !== null
+                            ? '$' + (address + 0x8000).toString(16)
+                            : ''}
                     </p>
                     <p>
                         Original:{' '}
-                        {originalByte !== null ? '$' + originalByte.toString(16) : ''}{' '}
-                        {ogOpcode ? (
-                            <>
-                                <a
-                                    href={
-                                        'http://www.6502.org/tutorials/6502opcodes.html#' +
-                                        ogOpcode
-                                    }
-                                >
-                                    {ogOpcode}
-                                </a>{' '}
-                                {ogAddressing}
-                            </>
-                        ) : (
-                            ''
-                        )}
+                        {originalByte !== null
+                            ? '$' + originalByte.toString(16)
+                            : ''}{' '}
+                        <OpCodeDisplay
+                            opcode={ogOpcode}
+                            addressMode={ogAddressing}
+                            hide={!ogOpcode}
+                        />
                     </p>
                     <p>
                         Modified:{' '}
-                        {modifiedByte !== null? '$' + modifiedByte.toString(16) : ''}{' '}
-                        {ogOpcode ? (
-                            modAddressing ? (
-                                <>
-                                    <a
-                                        href={
-                                            'http://www.6502.org/tutorials/6502opcodes.html#' +
-                                            modOpCode
-                                        }
-                                    >
-                                        {modOpCode}
-                                    </a>{' '}
-                                    {modAddressing}
-                                </>
-                            ) : (
-                                <>
-                                    <a
-                                        href={
-                                            'https://www.masswerk.at/6502/6502_instruction_set.html#' +
-                                            modOpCode
-                                        }
-                                    >
-                                        {modOpCode}
-                                    </a>{' '}
-                                    {' illegal!'}
-                                </>
-                            )
-                        ) : (
-                            ''
-                        )}
+                        {modifiedByte !== null
+                            ? '$' + modifiedByte.toString(16)
+                            : ''}{' '}
+                        <OpCodeDisplay
+                            opcode={modOpCode}
+                            addressMode={modAddressing}
+                            hide={!ogOpcode} // don't show unless original was an opcode
+                        />
                     </p>
                 </>
                 <p>
-                    <button onClick={() => setWindowObj(getWindow(lineNo))}>
-                        show code
-                    </button>
+                    <button onClick={() => setWindow(lineNo)}>show code</button>
                 </p>
                 {windowObj && (
                     <SyntaxHighlighter
