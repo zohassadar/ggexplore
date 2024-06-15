@@ -1,4 +1,4 @@
-const opcodes = [
+const opcodeLookup = [
     'BRK',
     'ORA',
     'HLT',
@@ -257,4 +257,4 @@ const opcodes = [
     'ISB',
 ];
 
-module.exports = opcodes;
+module.exports = opcodeLookup;

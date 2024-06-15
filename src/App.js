@@ -1,9 +1,16 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useState } from 'react';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs/';
-import opcodes from './opcodes.js';
+import opcodeLookup from './opcodes.js';
 import addressModes from './modes.js';
 const { decodeNES } = require('./gg.js');
+
+const nullOpcodes = {
+    ogOpcode: null,
+    ogAddressing: null,
+    modOpcode: null,
+    modAddressing: null,
+};
 
 function OpCodeDisplay({ opcode, addressMode, hide }) {
     if (hide) return '';
@@ -42,10 +49,7 @@ function App() {
     const [originalByte, setOriginalByte] = useState(null);
     const [modifiedByte, setModifiedByte] = useState(null);
     const [address, setAddress] = useState(null);
-    const [ogOpcode, setOgOpcode] = useState(null);
-    const [ogAddressing, setOgAddressing] = useState(null);
-    const [modOpCode, setModOpcode] = useState(null);
-    const [modAddressing, setModAddressing] = useState(null);
+    const [opcodes, setOpcodes] = useState(nullOpcodes);
 
     function setWindow(lineNo) {
         const newWindow = [];
@@ -104,15 +108,15 @@ function App() {
         setOriginalByte(ogByte);
         setModifiedByte(decoded.value);
         setAddress(decoded.address);
-        setOgAddressing(null);
-        setOgOpcode(null);
-        setModOpcode(null);
-        setModAddressing(null);
         if (lookupTable[decoded.address][3]) {
-            setModOpcode(opcodes[decoded.value]);
-            setModAddressing(addressModes[decoded.value]);
-            setOgOpcode(opcodes[ogByte]);
-            setOgAddressing(addressModes[ogByte]);
+            setOpcodes({
+                ogOpcode: opcodeLookup[ogByte],
+                ogAddressing: addressModes[ogByte],
+                modOpcode: opcodeLookup[decoded.value],
+                modAddressing: addressModes[decoded.value],
+            });
+        } else {
+            setOpcodes(nullOpcodes);
         }
     }
 
@@ -142,9 +146,9 @@ function App() {
                             ? '$' + originalByte.toString(16)
                             : ''}{' '}
                         <OpCodeDisplay
-                            opcode={ogOpcode}
-                            addressMode={ogAddressing}
-                            hide={!ogOpcode}
+                            opcode={opcodes.ogOpcode}
+                            addressMode={opcodes.ogAddressing}
+                            hide={!opcodes.ogOpcode}
                         />
                     </p>
                     <p>
@@ -153,9 +157,9 @@ function App() {
                             ? '$' + modifiedByte.toString(16)
                             : ''}{' '}
                         <OpCodeDisplay
-                            opcode={modOpCode}
-                            addressMode={modAddressing}
-                            hide={!ogOpcode} // don't show unless original was an opcode
+                            opcode={opcodes.modOpcode}
+                            addressMode={opcodes.modAddressing}
+                            hide={!opcodes.ogOpcode} // don't show unless original was an opcode
                         />
                     </p>
                 </>
