@@ -730,5 +730,5 @@ function isValidSNESCode(code) {
     return true;
 }
 
-module.exports = { encodeNES, decodeNES };
+module.exports = { encodeNES, decodeNES, isValidNESCode, RawCode };
 /* eslint-enable */

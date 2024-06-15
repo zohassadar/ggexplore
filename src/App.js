@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs/';
 import opcodeLookup from './opcodes.js';
 import addressModes from './modes.js';
-const { decodeNES } = require('./gg.js');
+import './App.css';
+const { RawCode, encodeNES, decodeNES, isValidNESCode } = require('./gg.js');
 
 const nullOpcodes = {
     ogOpcode: null,
@@ -13,7 +14,7 @@ const nullOpcodes = {
 };
 
 function OpCodeDisplay({ opcode, addressMode, hide }) {
-    if (hide) return '';
+    if (hide) return 'N/A';
     return addressMode ? (
         <>
             <a
@@ -39,6 +40,13 @@ function OpCodeDisplay({ opcode, addressMode, hide }) {
         </>
     );
 }
+
+function getGGCode(address, value) {
+    var rawCode = new RawCode();
+    rawCode.value = value;
+    rawCode.address = address;
+    return encodeNES(rawCode);
+}
 function App() {
     const [disasm, setDisasm] = useState('');
     const [loaded, setLoaded] = useState(false);
@@ -46,12 +54,28 @@ function App() {
     const [windowObj, setWindowObj] = useState('');
     const [lineNo, setLineNo] = useState(0);
     const [startNo, setStartNo] = useState(1);
-    const [originalByte, setOriginalByte] = useState(null);
-    const [modifiedByte, setModifiedByte] = useState(null);
-    const [address, setAddress] = useState(null);
     const [opcodes, setOpcodes] = useState(nullOpcodes);
+    const [display, setDisplay] = useState({
+        code: '',
+        address: '',
+        original: '',
+        modified: '',
+    });
 
+    function updateOpcodes(address, ogByte, modByte) {
+        if (lookupTable[address][3]) {
+            setOpcodes({
+                ogOpcode: opcodeLookup[ogByte],
+                ogAddressing: addressModes[ogByte],
+                modOpcode: opcodeLookup[modByte],
+                modAddressing: addressModes[modByte],
+            });
+        } else {
+            setOpcodes(nullOpcodes);
+        }
+    }
     function setWindow(lineNo) {
+        if (lineNo === null) return;
         const newWindow = [];
         const disasmLines = disasm.split(/\n/);
         const start = Math.max(lineNo - 20, 0);
@@ -95,74 +119,135 @@ function App() {
             }),
         );
     }
-    if (!loaded) {
-        getLookupTable();
-        setLoaded(true);
+
+    function handleAddress(event) {
+        const newAddressDisplay = event.target.value;
+        var newDisplay = Object.assign({}, display);
+        newDisplay.address = newAddressDisplay;
+        var newDisplay = {
+            code: display.code,
+            address: newAddressDisplay,
+            modified: display.modified,
+        };
+        const newAddress = parseInt(newAddressDisplay, 16) - 0x8000;
+        if (isNaN(newAddress) || newAddress < 0 || newAddress >= 0x8000) {
+            setDisplay(newDisplay);
+            setLineNo(null);
+            return;
+        }
+        setLineNo(lookupTable[newAddress][0]);
+        if (display.modified !== '') {
+            const newCode = getGGCode(newAddressDisplay, display.modified);
+            newDisplay.code = newCode;
+        }
+        setDisplay(newDisplay);
+    }
+    function handleModified(event) {
+        const newModifiedDisplay = event.target.value;
+        const ogByte = parseInt(display.original, 16);
+        const address = parseInt(display.address, 16) - 0x8000;
+        var newDisplay = Object.assign({}, display);
+        newDisplay.modified = newModifiedDisplay;
+        const newByte = parseInt(newModifiedDisplay, 16);
+        if (isNaN(newByte) || newByte < 0 || newByte >= 0x100) {
+            setDisplay(newDisplay);
+            return;
+        }
+        if (display.address != '') {
+            const newCode = getGGCode(display.address, newModifiedDisplay);
+            newDisplay.code = newCode;
+        }
+        updateOpcodes(address, ogByte, newByte);
+        setDisplay(newDisplay);
     }
 
     function handleGGCode(event) {
         const code = event.target.value;
+        var newDisplay = Object.assign({}, display);
+        newDisplay.code = code;
+        const valid = isValidNESCode(code);
+        if (!valid) {
+            setLineNo(null);
+            setDisplay(newDisplay);
+            return;
+        }
         const decoded = decodeNES(code);
         setLineNo(lookupTable[decoded.address][0]);
         const ogByte = lookupTable[decoded.address][2];
-        setOriginalByte(ogByte);
-        setModifiedByte(decoded.value);
-        setAddress(decoded.address);
-        if (lookupTable[decoded.address][3]) {
-            setOpcodes({
-                ogOpcode: opcodeLookup[ogByte],
-                ogAddressing: addressModes[ogByte],
-                modOpcode: opcodeLookup[decoded.value],
-                modAddressing: addressModes[decoded.value],
-            });
-        } else {
-            setOpcodes(nullOpcodes);
-        }
+        newDisplay.address = (decoded.address + 0x8000).toString(16);
+        newDisplay.modified = decoded.value.toString(16);
+        newDisplay.original = ogByte.toString(16);
+        setDisplay(newDisplay);
+        updateOpcodes(decoded.address, ogByte, decoded.value);
     }
 
+    if (!loaded) {
+        getLookupTable();
+        setLoaded(true);
+    }
     return (
         <div className="App">
             <header className="App-header">
+                <fieldset>
+                    <legend>Inputs</legend>
+                    <p>
+                        <label htmlFor="gg">GG Code:</label>
+                        <input
+                            id="gg"
+                            value={display.code}
+                            onChange={(e) => handleGGCode(e)}
+                            onKeyDown={(e) =>
+                                e.key === 'Enter' && setWindow(lineNo)
+                            }
+                        ></input>
+                    </p>
+                    <p>
+                        <label htmlFor="address">Address:</label>
+                        <input
+                            id="address"
+                            onChange={(e) => handleAddress(e)}
+                            value={display.address}
+                            onKeyDown={(e) =>
+                                e.key === 'Enter' && setWindow(lineNo)
+                            }
+                        ></input>
+                    </p>
+                    <p>
+                        <label htmlFor="original">Original:</label>
+                        <input
+                            id="original"
+                            disabled="true"
+                            value={display.original}
+                        ></input>{' '}
+                    </p>
+                    <p>
+                        <label htmlFor="modified">Modified:</label>
+                        <input
+                            id="modified"
+                            onChange={(e) => handleModified(e)}
+                            value={display.modified}
+                            onKeyDown={(e) =>
+                                e.key === 'Enter' && setWindow(lineNo)
+                            }
+                        ></input>{' '}
+                    </p>
+                </fieldset>
                 <p>
-                    <label htmlFor="gg">GG Code:</label>
-                    <input
-                        id="gg"
-                        onChange={(e) => handleGGCode(e)}
-                        onKeyDown={(e) =>
-                            e.key === 'Enter' && setWindow(lineNo)
-                        }
-                    ></input>
+                    Original Opcode:{' '}
+                    <OpCodeDisplay
+                        opcode={opcodes.ogOpcode}
+                        addressMode={opcodes.ogAddressing}
+                        hide={!opcodes.ogOpcode}
+                    />
                 </p>
-                <>
-                    <p>
-                        Address:{' '}
-                        {address !== null
-                            ? '$' + (address + 0x8000).toString(16)
-                            : ''}
-                    </p>
-                    <p>
-                        Original:{' '}
-                        {originalByte !== null
-                            ? '$' + originalByte.toString(16)
-                            : ''}{' '}
-                        <OpCodeDisplay
-                            opcode={opcodes.ogOpcode}
-                            addressMode={opcodes.ogAddressing}
-                            hide={!opcodes.ogOpcode}
-                        />
-                    </p>
-                    <p>
-                        Modified:{' '}
-                        {modifiedByte !== null
-                            ? '$' + modifiedByte.toString(16)
-                            : ''}{' '}
-                        <OpCodeDisplay
-                            opcode={opcodes.modOpcode}
-                            addressMode={opcodes.modAddressing}
-                            hide={!opcodes.ogOpcode} // don't show unless original was an opcode
-                        />
-                    </p>
-                </>
+                <p>
+                    Modified Opcode:{' '}
+                    <OpCodeDisplay
+                        opcode={opcodes.modOpcode}
+                        addressMode={opcodes.modAddressing}
+                        hide={!opcodes.ogOpcode} // don't show unless original was an opcode
+                    />
+                </p>
                 <p>
                     <button onClick={() => setWindow(lineNo)}>show code</button>
                 </p>
