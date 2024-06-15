@@ -1,8 +1,8 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useState } from 'react';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs/';
-import opcodes from "./opcodes.js";
-import addressModes from "./modes.js";
+import opcodes from './opcodes.js';
+import addressModes from './modes.js';
 const { encodeNES, decodeNES } = require('./gg.js');
 
 function App() {
@@ -10,9 +10,16 @@ function App() {
     const [loaded, setLoaded] = useState(false);
     const [lookupTable, setLookupTable] = useState([]);
     const [windowObj, setWindowObj] = useState('');
-    const [ggCode, setGgCode] = useState('...');
     const [lineNo, setLineNo] = useState(0);
     const [startNo, setStartNo] = useState(1);
+    const [originalByte, setOriginalByte] = useState(null);
+    const [modifiedByte, setModifiedByte] = useState(null);
+    const [address, setAddress] = useState(null);
+    const [ogOpcode, setOgOpcode] = useState(null);
+    const [ogAddressing, setOgAddressing] = useState(null);
+    const [modOpCode, setModOpcode] = useState(null);
+    const [modAddressing, setModAddressing] = useState(null);
+
     function getWindow(lineNo) {
         const newWindow = [];
         const disasmLines = disasm.split(/\n/);
@@ -38,6 +45,10 @@ function App() {
                         /; [89A-F][A-F0-9]{3} (.*)/,
                     );
                     if (search !== null) {
+                        var isOpCode = false;
+                        if (data[lineNo].match(/^\s+[a-z]{3}/)) {
+                            isOpCode = true;
+                        }
                         var bytes = search[1]
                             .split(' ')
                             .map((b) => parseInt(b, 16));
@@ -45,6 +56,8 @@ function App() {
                             ...[...Array(bytes.length).keys()].map((bidx) => [
                                 lineNo,
                                 bidx,
+                                bytes[bidx],
+                                bidx === 0 ? isOpCode : false,
                             ]),
                         );
                     }
@@ -61,12 +74,21 @@ function App() {
     function handleGGCode(event) {
         const code = event.target.value;
         const decoded = decodeNES(code);
-        setGgCode(
-            `Address: 0x${(decoded.address + 0x8000).toString(
-                16,
-            )} Value: 0x${decoded.value.toString(16)}`,
-        );
         setLineNo(lookupTable[decoded.address][0]);
+        const ogByte = lookupTable[decoded.address][2];
+        setOriginalByte(ogByte);
+        setModifiedByte(decoded.value);
+        setAddress(decoded.address);
+        setOgAddressing(null);
+        setOgOpcode(null);
+        setModOpcode(null);
+        setModAddressing(null);
+        if (lookupTable[decoded.address][3]) {
+            setModOpcode(opcodes[decoded.value]);
+            setModAddressing(addressModes[decoded.value]);
+            setOgOpcode(opcodes[ogByte]);
+            setOgAddressing(addressModes[ogByte]);
+        }
     }
 
     return (
@@ -74,12 +96,75 @@ function App() {
             <header className="App-header">
                 <p>
                     <label htmlFor="gg">GG Code:</label>
-                    <input id="gg" onChange={(e) => handleGGCode(e)}></input>
+                    <input
+                        id="gg"
+                        onChange={(e) => handleGGCode(e)}
+                        onKeyDown={(e) =>
+                            e.key === 'Enter' && setWindowObj(getWindow(lineNo))
+                        }
+                    ></input>
                 </p>
-                <pre> {ggCode}</pre>
+                <>
+                    <p>
+                        Address:{' '}
+                        {address !== null ? '$' + (address + 0x8000).toString(16) : ''}
+                    </p>
+                    <p>
+                        Original:{' '}
+                        {originalByte ? '$' + originalByte.toString(16) : ''}{' '}
+                        {ogOpcode ? (
+                            <>
+                                <a
+                                    href={
+                                        'http://www.6502.org/tutorials/6502opcodes.html#' +
+                                        ogOpcode
+                                    }
+                                >
+                                    {ogOpcode}
+                                </a>{' '}
+                                {ogAddressing}
+                            </>
+                        ) : (
+                            ''
+                        )}
+                    </p>
+                    <p>
+                        Modified:{' '}
+                        {modifiedByte !== null? '$' + modifiedByte.toString(16) : ''}{' '}
+                        {ogOpcode ? (
+                            modAddressing ? (
+                                <>
+                                    <a
+                                        href={
+                                            'http://www.6502.org/tutorials/6502opcodes.html#' +
+                                            modOpCode
+                                        }
+                                    >
+                                        {modOpCode}
+                                    </a>{' '}
+                                    {modAddressing}
+                                </>
+                            ) : (
+                                <>
+                                    <a
+                                        href={
+                                            'https://www.masswerk.at/6502/6502_instruction_set.html#' +
+                                            modOpCode
+                                        }
+                                    >
+                                        {modOpCode}
+                                    </a>{' '}
+                                    {' illegal!'}
+                                </>
+                            )
+                        ) : (
+                            ''
+                        )}
+                    </p>
+                </>
                 <p>
                     <button onClick={() => setWindowObj(getWindow(lineNo))}>
-                        click
+                        show code
                     </button>
                 </p>
                 {windowObj && (
@@ -95,8 +180,6 @@ function App() {
                                 display: 'block',
                                 width: 'fit-content',
                             };
-                            console.log(`lineNumber= ${lineNumber}`);
-                            console.log('HELLO');
                             if (lineNumber === lineNo + 1) {
                                 style.backgroundColor = '#284a56'; //#282a36
                             }
