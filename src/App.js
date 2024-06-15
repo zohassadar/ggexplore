@@ -111,7 +111,7 @@ function App() {
                     </p>
                     <p>
                         Original:{' '}
-                        {originalByte ? '$' + originalByte.toString(16) : ''}{' '}
+                        {originalByte !== null ? '$' + originalByte.toString(16) : ''}{' '}
                         {ogOpcode ? (
                             <>
                                 <a
