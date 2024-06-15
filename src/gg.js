@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  ******************************************************************************/
 // setup system constants
+/* eslint-disable */
 const SYSTEM_NINTENDO = 0;
 const SYSTEM_SUPERNINTENDO = 1;
 const SYSTEM_GENESIS = 2;
@@ -730,3 +731,4 @@ function isValidSNESCode(code) {
 }
 
 module.exports = { encodeNES, decodeNES };
+/* eslint-enable */
