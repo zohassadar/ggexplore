@@ -34,6 +34,7 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 ### Thanks
 
+* https://github.com/ejona86/taus
 * https://games.technoplaza.net/ggencoder/
 * https://www.masswerk.at/6502/6502_instruction_set.html
 * http://www.6502.org/tutorials/6502opcodes.html
