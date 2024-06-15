@@ -45,11 +45,11 @@ function App() {
                         /; [89A-F][A-F0-9]{3} (.*)/,
                     );
                     if (search !== null) {
-                        var isOpCode = false;
+                        const isOpCode = false;
                         if (data[lineNo].match(/^\s+[a-z]{3}/)) {
                             isOpCode = true;
                         }
-                        var bytes = search[1]
+                        const bytes = search[1]
                             .split(' ')
                             .map((b) => parseInt(b, 16));
                         lookup.push(
